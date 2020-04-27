@@ -7,11 +7,11 @@ jobs:
         type: boolean
         default: false
     docker:
-      - image: circleci/ruby:2.6.3-node # バージョンについては適宜変更
+      - image: circleci/ruby:2.5.3-node
         environment:
           BUNDLE_PATH: vendor/bundle
-          BUNDLER_VERSION: 2.0.1
-      - image: circleci/mysql:5.7
+          BUNDLER_VERSION: 1.17.3
+      - image: circleci/mysql:8.0
         environment:
           MYSQL_DATABASE: base_project_test
     steps:
@@ -57,7 +57,7 @@ jobs:
 
   deploy:
     docker:
-      - image: circleci/ruby:2.6.3-node&nbsp;# バージョンについては適宜変更
+      - image: circleci/ruby:2.5.3-node&nbsp;
     working_directory: /tmp/repo
     steps:
       - checkout
