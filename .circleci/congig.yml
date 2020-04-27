@@ -1,97 +1,93 @@
 version: 2.1
 jobs:
-  rspec:
-    working_directory: ~/app_name
+  build:
+    parameters:
+      assets_precompile:
+        description: "Whether or not do assets:precompile"
+        type: boolean
+        default: false
     docker:
-      - image: circleci/ruby
+      - image: circleci/ruby:2.6.3-node # バージョンについては適宜変更
+        environment:
+          BUNDLE_PATH: vendor/bundle
+          BUNDLER_VERSION: 2.0.1
+      - image: circleci/mysql:5.7
+        environment:
+          MYSQL_DATABASE: base_project_test
     steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: Setup environment variable
-          command: |
-            echo "export COMPOSE_FILE=docker-compose.ci.yml" >> $BASH_ENV
-      - run:
-          name: Start containers and verify it is working
-          command: |
-            set -x
-            docker-compose up -d
-            docker exec potepanec_app curl -4 --retry 10 --retry-delay 3 --retry-connrefused http://localhost:3000
-      - run:
-          name: Setup database
-          command: |
-            docker-compose exec potepanec bash -c 'yes n | bundle exec rails g spree:install --migrate --seed --sample --auto_accept'
-      - run:
-          name: Run rspec
-          command: docker-compose exec potepanec rspec
-
-  rubocop:
-    working_directory: ~/app_name
-    docker:
-      - image: circleci/ruby:2.5.3
-    steps:
+      - run: gem install bundler -v $BUNDLER_VERSION
       - checkout
       - restore_cache:
           keys:
-            - gemfiles-{{ .Branch }}-{{ checksum "Gemfile.lock" }}
-            - gemfiles-{{ .Branch }}-
-            - gemfiles-master-
-      - run: bundle config --local path vendor/bundle
+            - bundle-v2-{{ checksum "Gemfile.lock" }}
+            - yarn-v1-{{ checksum "yarn.lock" }}
+      - run: bin/bundle check || bin/bundle install --deployment
       - run:
-          name: bundle install
-          command: bundle check || bundle install --jobs=8 --clean
-      - run:
-          name: Run rubocop
-          command: bundle exec rubocop --parallel
+          name: install yarn dependencies
+          command: bundle exec yarn install
       - save_cache:
-          key: gemfiles-{{ .Branch }}-{{ checksum "Gemfile.lock" }}
+          key: bundle-v2-{{ checksum "Gemfile.lock" }}
           paths:
             - vendor/bundle
+      - save_cache:
+          key: yarn-v1-{{ checksum "yarn.lock" }}
+          paths:
+            - node_modules
+      - run:
+          command: bin/rake db:create db:migrate
+          environment:
+            RAILS_ENV: test
 
-  heroku_deploy:
-    working_directory: ~/app_name
+      - run: bin/bundle exec rubocop
+      - run: bin/bundle exec rails_best_practices
+      - run: bundle exec brakeman -5 -A -w 1 -e -z
+      - run:
+          name: run tests
+          command: |
+            bundle exec rspec --format progress \
+                            --format RspecJunitFormatter \
+                            --format progress
+      - store_artifacts:
+          path: coverage
+
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
+
+  deploy:
     docker:
-      - image: sue445/heroku-cli
+      - image: circleci/ruby:2.6.3-node&nbsp;# バージョンについては適宜変更
+    working_directory: /tmp/repo
     steps:
       - checkout
-      - build-tools/install-ci-tools
-      - jq/install
       - run:
-          name: Identify who I am
-          command: echo 'export MY_EMAIL=`heroku auth:whoami | tail -n 1`' >> $BASH_ENV
-      - run:
-          name: Identify Heroku app names to destroy
-          command: echo 'export APP_NAMES_TO_REMOVE=`heroku apps --json | jq -r "map(select(.owner.email == "\"$MY_EMAIL\"" and (.name | contains(\"potepanec\")))) | sort_by(.updated_at) | reverse | .[5:] | .[].name"`' >> $BASH_ENV
-      - run:
-          name: Delete old apps if needed
-          command: for app_name in $APP_NAMES_TO_REMOVE; do heroku apps:destroy -a $app_name -c $app_name; done
-      - run:
-          name: Define Heroku app name to create
-          command: timestamp=`date +%Y%m%d%H%M%S` && echo "export HEROKU_APP_NAME=potepanec-$timestamp" >> $BASH_ENV
-      - run:
-          name: Create fresh Heroku app
-          command: heroku apps:create $HEROKU_APP_NAME --addons=jawsdb:kitefin
-      - run:
-          name: Deploy
-          command: git push https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git master
-      - run:
-          name: Run post-deploy tasks
-          command: |
-            heroku config:set AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-            heroku run bin/rails db:migrate
-            heroku run bin/rails runner "['products', 'taxons', 'option_values', 'product_option_types', 'product_properties', 'variants', 'assets'].each { |table| Spree::Sample.load_sample(table) }"
-            heroku run bin/rails runner db/seeds/potepan_suggest.rb
-
-orbs:
-  build-tools: circleci/build-tools@2.6.3
-  jq: circleci/jq@1.9.1
-workflows:
-  version: 2.1
-  build:
-    jobs:
-      - rspec
-      - rubocop
-      - heroku_deploy:
-          requires:
-            - rspec
-            - rubocop
+        name: 'Install Heroku CLI, if necessary'
+        command: |
+          if [[ $(command -v heroku) == "" ]]; then
+            curl https://cli-assets.heroku.com/install.sh | sh
+          else
+            echo "Heroku is already installed. No operation was performed."
+          fi
+    - run:
+        name: heroku maintenance on
+        command: heroku maintenance:on --app ${HEROKU_APP_NAME}
+    - run:
+        name: Deploy to Heroku_Production
+        command: |
+          git push https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git master
+    - run:
+        name: heroku maintenance off
+        command: heroku maintenance:off --app ${HEROKU_APP_NAME}
+        workflows:
+          version: 2
+          build-deploy:
+            jobs:
+              - build
+              - deploy:
+                  requires:
+                    - build
+                  filters:
+                    branches:
+                      only:
+                        - master
