@@ -44,7 +44,7 @@ RUN apt-get update                                                              
   && mv ~/chromedriver /usr/bin/chromedriver                                                                                            \
   && apt-get clean
 
-RUN mkdir /goow_app
-WORKDIR /goow_app
-COPY . /goow_app
+RUN mkdir /web
+WORKDIR /web
+COPY . /web
 RUN bundle install
