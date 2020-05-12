@@ -7,4 +7,6 @@ Rails.application.routes.draw do
   }
   get 'about', to: 'home#about'
   get 'policy', to: 'home#policy'
+
+  resources :users, only:[:index, :show, :edit]
 end
