@@ -22,6 +22,16 @@ gem 'bootstrap-sass', '3.3.7'
 
 group :development, :test do
   gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]
+  gem 'capybara', '>= 2.15'
+  gem 'selenium-webdriver'
+  gem 'chromedriver-helper'
+  gem 'rspec-rails'
+  gem 'factory_bot_rails'
+  gem 'rails-controller-testing'
+  gem 'pry-rails'
+  gem 'pry-doc'
+  gem 'pry-byebug'
+  gem 'rubocop-airbnb'
 end
 
 group :development do
@@ -30,18 +40,6 @@ group :development do
   gem 'spring'
   gem 'spring-watcher-listen', '~> 2.0.0'
   gem 'spring-commands-rspec'
-end
-
-group :test do
-  gem 'capybara', '>= 2.15'
-  gem 'selenium-webdriver'
-  gem 'chromedriver-helper'
-  gem 'rspec-rails'
-  gem 'factory_bot_rails'
-  gem 'pry-rails'
-  gem 'pry-doc'
-  gem 'pry-byebug'
-  gem 'rubocop-airbnb'
 end
 
 gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
