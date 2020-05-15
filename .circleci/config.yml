@@ -20,7 +20,7 @@ jobs:
       - run:
           name: Setup database
           command: |
-            docker-compose exec web bash -c 'yes n | bundle exec rails g spree:install --migrate --seed --sample --auto_accept'
+            docker-compose exec web bash -c 'yes n | bundle exec rails db:create'
       - run:
           name: Run rspec
           command: docker-compose exec web rspec
