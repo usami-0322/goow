@@ -2,6 +2,8 @@ version: "3"
 volumes:
   mysql_8_0-data:
   vendor_bundle_2_5_1:
+  vendor_assets_2_7:
+  node_modules:
 
 services:
   mysql:
@@ -35,6 +37,8 @@ services:
       - /web/tmp
       # - /web/vendor/bundle
       - vendor_bundle_2_5_1:/web/vendor/bundle
+      - vendor_assets_2_7:/web/vendor/assets
+      - node_modules:/web/node_modules
     tty: true
     stdin_open: true
     command: bundle exec rails server -b 0.0.0.0
