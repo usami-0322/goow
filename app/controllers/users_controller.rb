@@ -15,7 +15,7 @@ class UsersController < ApplicationController
   def update
     @user = current_user
     if params[:user][:password].empty?
-      @user.errors.add(:password,:blank)
+      @user.errors.add(:password, :blank)
       render 'edit'
     elsif @user.update_with_password(user_params)
       flash[:notise] = "パスワードを変更しました"
@@ -28,7 +28,7 @@ class UsersController < ApplicationController
 
   private
 
-    def user_params
-      params.require(:user).permit(:password, :password_confirmation, :current_password)
-    end
+  def user_params
+    params.require(:user).permit(:password, :password_confirmation, :current_password)
+  end
 end

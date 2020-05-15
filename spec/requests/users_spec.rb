@@ -22,6 +22,7 @@ RSpec.describe "Users", type: :request do
       before do
         get users_path
       end
+
       it "302レスポンスを返すこと" do
         expect(response.status).to eq 302
       end
@@ -33,7 +34,7 @@ RSpec.describe "Users", type: :request do
   end
 
   describe "GET #show" do
-    context "承認済みのユーザーの場合"do
+    context "承認済みのユーザーの場合" do
       before do
         @user = FactoryBot.create(:user)
         sign_in @user
@@ -77,5 +78,4 @@ RSpec.describe "Users", type: :request do
       expect(response.status).to eq 200
     end
   end
-
 end

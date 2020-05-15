@@ -9,10 +9,4 @@ FactoryBot.define do
       name nil
     end
   end
-
-  factory :sato, class: User do
-    name { "Sato" }
-    employee_number { "1111" }
-    password { "123456abc" }
-  end
 end

@@ -2,6 +2,7 @@ require 'rails_helper'
 
 RSpec.feature "Users", type: :feature do
   let(:user) { create(:user) }
+
   scenario "ユーザーはパスワードを編集する" do
     visit root_path
     click_link "ログイン"
